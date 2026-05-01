@@ -49,7 +49,9 @@ st.title("🛒 團購系統")
 st.info("請盡量準備剛好金額的現金，避免找零造成收款者困擾。")
 
 # 3. 使用者登入識別
-user_id = st.text_input("請輸入您的姓名 (修改/訂購標籤)：").strip()
+entered_user_id = st.text_input("請輸入您的姓名 (修改/訂購標籤)：").strip()
+confirm_user = st.button("確認")
+user_id = entered_user_id if confirm_user and entered_user_id else ""
 
 if user_id:
     user_record = df[df['username'] == user_id]
