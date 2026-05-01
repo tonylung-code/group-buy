@@ -13,7 +13,9 @@ ITEM_PRICES = {
     "黑眼巧克力": 30,
     "楓糖吐司": 70,
     "可可芋頭吐司": 70,
-    "半熟乳酪": 60,
+    "歐式-木村核桃堡": 70,
+    "歐式-伯爵蔓越莓": 70,
+    "歐式-酒釀桂圓": 200,
 }
 ITEM_COLUMNS = ["username", *ITEM_PRICES.keys()]
 
@@ -44,6 +46,7 @@ else:
     df = df[ITEM_COLUMNS]
 
 st.title("🛒 團購系統")
+st.info("請盡量準備剛好金額的現金，避免找零造成收款者困擾。")
 
 # 3. 使用者登入識別
 user_id = st.text_input("請輸入您的姓名 (修改/訂購標籤)：").strip()
@@ -56,6 +59,7 @@ if user_id:
         
         new_data = {"username": user_id}
         order_total = 0
+        order_quantity = 0
         
         for item, price in ITEM_PRICES.items():
             # 邏輯：如果有舊紀錄就填入舊值，否則預設 0
@@ -67,9 +71,10 @@ if user_id:
                 value=default_val,
             )
             new_data[item] = quantity
+            order_quantity += quantity
             order_total += quantity * price
 
-        st.caption(f"個人訂單總金額：${order_total}")
+        st.caption(f"個人訂購總數量：{order_quantity}，個人訂單總金額：${order_total}")
         
         submit = st.form_submit_button("更新訂購資訊")
         
