@@ -1,0 +1,15 @@
+# 排除虛擬環境
+venv/
+.venv/
+env/
+
+# 排除敏感金鑰
+.streamlit/secrets.toml
+# 排除所有 JSON 金鑰檔案
+*.json
+.streamlit/
+
+# 排除系統與快取
+__pycache__/
+*.pyc
+.DS_Store
