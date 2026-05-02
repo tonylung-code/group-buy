@@ -39,6 +39,9 @@ ITEM_PRICES = {
 }
 ITEM_COLUMNS = ["username", *ITEM_PRICES.keys()]
 
+if "active_user_id" not in st.session_state:
+    st.session_state.active_user_id = ""
+
 
 def get_quantity(record: pd.DataFrame, item: str) -> int:
     if record.empty or item not in record.columns:
@@ -81,7 +84,10 @@ with st.expander("系統使用說明", expanded=True):
 
 entered_user_id = st.text_input("請輸入您的姓名 (修改/訂購標籤)：").strip()
 confirm_user = st.button("確認")
-user_id = entered_user_id if confirm_user and entered_user_id else ""
+if confirm_user and entered_user_id:
+    st.session_state.active_user_id = entered_user_id
+
+user_id = st.session_state.active_user_id
 
 if user_id:
     user_record = df[df["username"] == user_id]
@@ -117,6 +123,7 @@ if user_id:
 
             conn.update(data=df)
             st.success(f"✅ {user_id} 的訂單已更新！")
+            st.session_state.active_user_id = user_id
             st.rerun()
 
 st.divider()
