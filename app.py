@@ -5,17 +5,26 @@ import pandas as pd
 st.set_page_config(page_title="葡吉 團購系統", layout="wide")
 
 ITEM_PRICES = {
-    "羅宋": 80,
-    "奶露麵包": 90,
-    "蔓越莓乳酪": 75,
-    "東風芝士堡": 90,
-    "小帥哥（肉鬆麵包/5入）": 70,
-    "黑眼巧克力": 30,
-    "楓糖吐司": 70,
-    "可可芋頭吐司": 70,
-    "歐式-木村核桃堡": 70,
-    "歐式-伯爵蔓越莓": 70,
-    "歐式-酒釀桂圓": 200,
+    "1. 羅宋": 80,
+    "2. 奶露麵包": 90,
+    "3. 蔓越莓乳酪": 75,
+    "4. 東風芝士堡": 90,
+    "5. 小帥哥（肉鬆麵包/5入）": 70,
+    "6. 黑眼巧克力": 30,
+    "7. 蔥麵包": 30,
+    "8. 鹽麵包": 50,
+    "9. 紅豆麵包": 35,
+    "10. 楓糖吐司": 70,
+    "11. 年輪紅豆吐司": 70,
+    "12. 可可芋頭吐司 (1/2條)": 70,
+    "13. 黑糖麻糬吐司 (1/2條)": 55,
+    "14. 歐式-木村核桃堡": 70,
+    "15. 歐式-伯爵蔓越莓": 70,
+    "16. 歐式-全麥堅果核桃": 70,
+    "17. 歐式-酒釀桂圓": 200,
+    "18. 千層烤布蕾": 70,
+    "19. 湯種風琴司康": 60,
+    "20. 休格蘭巧克力": 30,
 }
 ITEM_COLUMNS = ["username", *ITEM_PRICES.keys()]
 
@@ -30,10 +39,9 @@ def get_quantity(record: pd.DataFrame, item: str) -> int:
 
     return int(value)
 
-# 1. 初始化連線
+
 conn = st.connection("gsheets", type=GSheetsConnection)
 
-# 2. 獲取資料 (設定 ttl=0 以確保每次都是最新數據)
 df = conn.read(ttl=0)
 if df is None or df.empty:
     df = pd.DataFrame(columns=ITEM_COLUMNS)
@@ -47,26 +55,36 @@ else:
 
 st.title("🛒 團購系統")
 st.info("請盡量準備剛好金額的現金，避免找零造成收款者困擾。")
+st.markdown("官網網址：[葡吉麵包官網](https://pujeigiftlp.com.tw/pujei-bread/)")
 
-# 3. 使用者登入識別
+with st.expander("系統使用說明", expanded=True):
+    st.markdown(
+        """
+        1. 請先輸入姓名，並按下「確認」按鈕。
+        2. 依照需求填寫各品項的訂購數量。
+        3. 系統會自動顯示個人訂購總數量與總金額。
+        4. 確認內容無誤後，按下「更新訂購資訊」送出訂單。
+        5. 若要修改/確認原本的訂單，輸入相同姓名後重新調整數量再送出即可。
+        """
+    )
+
 entered_user_id = st.text_input("請輸入您的姓名 (修改/訂購標籤)：").strip()
 confirm_user = st.button("確認")
 user_id = entered_user_id if confirm_user and entered_user_id else ""
 
 if user_id:
-    user_record = df[df['username'] == user_id]
-    
+    user_record = df[df["username"] == user_id]
+
     with st.form("order_form"):
         st.subheader(f"當前使用者：{user_id}")
-        
+
         new_data = {"username": user_id}
         order_total = 0
         order_quantity = 0
-        
+
         for item, price in ITEM_PRICES.items():
-            # 邏輯：如果有舊紀錄就填入舊值，否則預設 0
             default_val = get_quantity(user_record, item)
-            
+
             quantity = st.number_input(
                 f"{item}（單價 ${price}）",
                 min_value=0,
@@ -77,35 +95,33 @@ if user_id:
             order_total += quantity * price
 
         st.caption(f"個人訂購總數量：{order_quantity}，個人訂單總金額：${order_total}")
-        
+
         submit = st.form_submit_button("更新訂購資訊")
-        
+
         if submit:
-            # 移除舊紀錄並加入新紀錄 (即為修改邏輯)
-            df = df[df['username'] != user_id]
+            df = df[df["username"] != user_id]
             new_row = pd.DataFrame([new_data])
             df = pd.concat([df, new_row], ignore_index=True)
             df = df[ITEM_COLUMNS]
-            
-            # 寫回 Google Sheets
+
             conn.update(data=df)
             st.success(f"✅ {user_id} 的訂單已更新！")
             st.rerun()
 
-# 4. 後台統計區域
 st.divider()
 st.subheader("📊 目前團購統計總量")
 if df is not None and not df.empty:
     total_summary = df.reindex(columns=ITEM_PRICES.keys(), fill_value=0).sum().astype(int)
     summary_df = pd.DataFrame(
         {
+            "品項": list(ITEM_PRICES.keys()),
             "單價": pd.Series(ITEM_PRICES),
             "訂購數量": total_summary,
         }
     )
     summary_df["小計"] = summary_df["單價"] * summary_df["訂購數量"]
 
-    st.table(summary_df)
+    st.dataframe(summary_df, hide_index=True, use_container_width=True)
     st.metric("團購總金額", f"${int(summary_df['小計'].sum())}")
 else:
     st.info("目前尚無訂購資料。")
