@@ -37,7 +37,9 @@ ITEM_PRICES = {
     "19. 湯種風琴司康": 60,
     "20. 休格蘭巧克力": 30,
 }
+TOTAL_AMOUNT_COLUMN = "個人總額"
 ITEM_COLUMNS = ["username", *ITEM_PRICES.keys()]
+SHEET_COLUMNS = [*ITEM_COLUMNS, TOTAL_AMOUNT_COLUMN]
 
 if "active_user_id" not in st.session_state:
     st.session_state.active_user_id = ""
@@ -58,14 +60,16 @@ conn = st.connection("gsheets", type=GSheetsConnection)
 
 df = conn.read(ttl=0)
 if df is None or df.empty:
-    df = pd.DataFrame(columns=ITEM_COLUMNS)
+    df = pd.DataFrame(columns=SHEET_COLUMNS)
 else:
     if "username" not in df.columns:
         df["username"] = ""
     for item in ITEM_PRICES:
         if item not in df.columns:
             df[item] = 0
-    df = df[ITEM_COLUMNS]
+    if TOTAL_AMOUNT_COLUMN not in df.columns:
+        df[TOTAL_AMOUNT_COLUMN] = 0
+    df = df[SHEET_COLUMNS]
 
 st.title("🛒 團購系統")
 st.info("請盡量準備剛好金額的現金，避免找零造成收款者困擾。")
@@ -79,6 +83,7 @@ with st.expander("系統使用說明", expanded=True):
         3. 系統會自動顯示個人訂購總數量與總金額。
         4. 確認內容無誤後，按下「更新訂購資訊」送出訂單。
         5. 若要修改/確認原本的訂單，輸入相同姓名後重新調整數量再送出即可。
+        6. 結單日期為 5/9（六）15:30，表單關閉逾時不候，產品將於 5/18（一）送達
         """
     )
 
@@ -116,10 +121,11 @@ if user_id:
         submit = st.form_submit_button("更新訂購資訊")
 
         if submit:
+            new_data[TOTAL_AMOUNT_COLUMN] = order_total
             df = df[df["username"] != user_id]
             new_row = pd.DataFrame([new_data])
             df = pd.concat([df, new_row], ignore_index=True)
-            df = df[ITEM_COLUMNS]
+            df = df[SHEET_COLUMNS]
 
             conn.update(data=df)
             st.success(f"✅ {user_id} 的訂單已更新！")
