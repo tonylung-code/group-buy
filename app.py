@@ -3,6 +3,17 @@ from streamlit_gsheets import GSheetsConnection
 import pandas as pd
 
 st.set_page_config(page_title="葡吉 團購系統", layout="wide")
+st.markdown(
+    """
+    <style>
+    div[data-testid="stNumberInput"] label p {
+        font-size: 1.2rem;
+        font-weight: 600;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
 
 ITEM_PRICES = {
     "1. 羅宋": 80,
