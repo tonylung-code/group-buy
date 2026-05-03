@@ -45,15 +45,25 @@ if "active_user_id" not in st.session_state:
     st.session_state.active_user_id = ""
 
 
+def to_int(value) -> int:
+    if pd.isna(value) or value == "":
+        return 0
+    return int(value)
+
+
 def get_quantity(record: pd.DataFrame, item: str) -> int:
     if record.empty or item not in record.columns:
         return 0
 
-    value = record[item].values[0]
-    if pd.isna(value) or value == "":
-        return 0
+    return to_int(record[item].values[0])
 
-    return int(value)
+
+def calculate_order_quantity(row: pd.Series) -> int:
+    return sum(to_int(row.get(item, 0)) for item in ITEM_PRICES)
+
+
+def calculate_order_total(row: pd.Series) -> int:
+    return sum(to_int(row.get(item, 0)) * price for item, price in ITEM_PRICES.items())
 
 
 conn = st.connection("gsheets", type=GSheetsConnection)
@@ -70,6 +80,15 @@ else:
     if TOTAL_AMOUNT_COLUMN not in df.columns:
         df[TOTAL_AMOUNT_COLUMN] = 0
     df = df[SHEET_COLUMNS]
+
+for item in ITEM_PRICES:
+    df[item] = df[item].apply(to_int)
+
+calculated_totals = df.apply(calculate_order_total, axis=1)
+sheet_totals = df[TOTAL_AMOUNT_COLUMN].apply(to_int)
+if not calculated_totals.equals(sheet_totals):
+    df[TOTAL_AMOUNT_COLUMN] = calculated_totals
+    conn.update(data=df[SHEET_COLUMNS])
 
 st.title("🛒 團購系統")
 st.info("請盡量準備剛好金額的現金，避免找零造成收款者困擾。")
@@ -133,19 +152,19 @@ if user_id:
             st.rerun()
 
 st.divider()
-st.subheader("📊 目前團購統計總量")
+st.subheader("📋 訂購資訊總覽")
 if df is not None and not df.empty:
-    total_summary = df.reindex(columns=ITEM_PRICES.keys(), fill_value=0).sum().astype(int)
-    summary_df = pd.DataFrame(
+    overview_df = pd.DataFrame(
         {
-            "品項": list(ITEM_PRICES.keys()),
-            "單價": pd.Series(ITEM_PRICES),
-            "訂購數量": total_summary,
+            "訂購人姓名": df["username"],
+            "訂購數量": df.apply(calculate_order_quantity, axis=1),
+            "訂購總金額": df[TOTAL_AMOUNT_COLUMN].apply(to_int),
         }
     )
-    summary_df["小計"] = summary_df["單價"] * summary_df["訂購數量"]
+    overview_df = overview_df[overview_df["訂購人姓名"].astype(str).str.strip() != ""]
+    overview_df = overview_df.sort_values(by="訂購人姓名").reset_index(drop=True)
 
-    st.dataframe(summary_df, hide_index=True, use_container_width=True)
-    st.metric("團購總金額", f"${int(summary_df['小計'].sum())}")
+    st.dataframe(overview_df, hide_index=True, use_container_width=True)
+    st.metric("全部訂單總金額", f"${int(overview_df['訂購總金額'].sum())}")
 else:
     st.info("目前尚無訂購資料。")
