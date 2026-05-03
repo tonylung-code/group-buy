@@ -166,5 +166,20 @@ if df is not None and not df.empty:
 
     st.dataframe(overview_df, hide_index=True, use_container_width=True)
     st.metric("全部訂單總金額", f"${int(overview_df['訂購總金額'].sum())}")
+
+    st.divider()
+    st.subheader("📊 目前團購統計總量")
+    total_summary = df.reindex(columns=ITEM_PRICES.keys(), fill_value=0).sum().astype(int)
+    summary_df = pd.DataFrame(
+        {
+            "品項": list(ITEM_PRICES.keys()),
+            "單價": pd.Series(ITEM_PRICES),
+            "訂購數量": total_summary,
+        }
+    )
+    summary_df["小計"] = summary_df["單價"] * summary_df["訂購數量"]
+
+    st.dataframe(summary_df, hide_index=True, use_container_width=True)
+    st.metric("團購品項總金額", f"${int(summary_df['小計'].sum())}")
 else:
     st.info("目前尚無訂購資料。")
