@@ -36,6 +36,8 @@ ITEM_PRICES = {
     "18. 千層烤布蕾": 70,
     "19. 湯種風琴司康": 60,
     "20. 休格蘭巧克力": 30,
+    "21. 橄欖麵包": 30,
+    "22. 花生麵包": 30,
 }
 TOTAL_AMOUNT_COLUMN = "個人總額"
 ITEM_COLUMNS = ["username", *ITEM_PRICES.keys()]
